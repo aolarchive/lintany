@@ -1,28 +1,4 @@
-JSLint Reporter
-Node.js wrapper for JSLint (http://jslint.com)
+= Lintany =
 
+Lintany is a node script that enables monitoring and linting of a developers local project files. When files are changed in the developers local environments a number of configurable linters can be run on code based on it's file extension. Messages returned from the linters will be displayed in a growl notification (command line growl is required).
 
-Usage:
-
-  $ node wrapper.js [options] <filepath>
-
-(use `node wrapper.js --upgrade` to generate jslint.js alongside wrapper.js)
-
-
-Options:
-
-  --<name>[=<value>]
-    names as per http://www.jslint.com/lint.html#options
-    (e.g. "--vars --predef=foo,bar,baz --maxlen=80")
-
-  --upgrade
-    download latest version of JSLint
-
-  --verbose
-    display additional information
-
-  --version
-    display version numbers for both JSLint Reporter and JSLint
-
-  --help
-    display this usage information
