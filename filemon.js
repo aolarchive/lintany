@@ -1,22 +1,26 @@
 var fs = require('fs'), util = require('util'), growl = require('growl'), jshint = require('jshint');
 
-var failed = false, filepath = process.cwd()+'/'+process.argv.slice(2), linters = [], lintersFileFilter = [], config = {};
+var failed = false, filepath = process.cwd()+'/'+process.argv.slice(2), linters = [], lintersFileFilter = [], lintersExcludeFileFilter = [], config = {};
 
 util.print('Current directory: ' + process.cwd());
 eval(fs.readFileSync(__dirname+'/config.js', encoding="ascii"));
 
 for (var i = 0; i < config.linters.length; i++){
-	var curlinter = config.linters[i], lintername = curlinter.name, linterFFilter = curlinter.fileFilter;
+	var curlinter = config.linters[i], lintername = curlinter.name, linterFFilter = curlinter.fileFilter, linterEFFilter = curlinter.excludeFilter, successCommands = curlinter.successCommand;
 	linters.push(require(lintername.toLowerCase())[lintername.toUpperCase()]);
 	lintersFileFilter.push(linterFFilter);
+	lintersExcludeFileFilter.push(linterEFFilter);
 }
 
 function walk(filepath, callback) {
-	//util.print(filepath);
+	//util.print(filepath+"\n");
     fs.stat(filepath, function(err, stats) {
 		if (err) throw err;
         if (stats.isFile() && filepath.match(lintersFileFilter[0])) {
-            monitorFile(filepath);
+            if (!lintersExcludeFileFilter[0] || !filepath.match(lintersExcludeFileFilter[0])){
+                //util.print(filepath+"\n");
+                monitorFile(filepath);
+            }
         } else if (stats.isDirectory()) {
             fs.readdir(filepath, function(err, files) {
                 for (var i = 0; i < files.length; i++) {
@@ -25,7 +29,7 @@ function walk(filepath, callback) {
             });
         }
     });
-}
+};
 
 function monitorFile(filename) {
     //util.print("\nmonitoring "+filename+"\n");
@@ -63,6 +67,36 @@ function monitorFile(filename) {
 						image: __dirname+'/yes.png'
 					});
 					failed = false;
+					var sys = require('sys')
+					var exec = require('child_process').exec;
+					function puts(msg, successFilter) {
+					    return function(error, stdout, stderr) {
+					        //util.print('Error:'+error+' STDOut:'+stdout+' STDError:'+stderr);
+                            util.print(stdout);
+                            if (stdout.match(successFilter)){
+                                growl.notify('Command Finish', {
+                                    title: msg,
+                                    image: __dirname+'/yes.png'
+                                });
+                            }else{
+                                growl.notify('Error', {
+                                    title: stdout,
+                                    image: __dirname+'/no.png'
+                                });
+                            }
+					    }
+                    };
+                    if (successCommands.length > 0){
+                        for (var k = 0; k < successCommands.length; k++){
+                            if (successCommands[k].beforeMsg){
+                                growl.notify('Command Start', {
+                                    title: successCommands[k].beforeMsg,
+                                    image: __dirname+'/yes.png'
+                                });
+                            }
+                            exec(successCommands[k].cmd,puts(successCommands[k].afterMsg, successCommands[k].successFilter));
+                        }
+                    }
 				}
             }
             
@@ -70,6 +104,6 @@ function monitorFile(filename) {
             failed = false;
         }
     });
-}
+};
 
 walk(filepath);
